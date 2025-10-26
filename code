@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Responsive Calculator</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for the calculator */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        /* Custom font import for consistency (Tailwind standard) */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+    </style>
+    <script>
+        // Set up Tailwind configuration
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+
+        // JavaScript logic for the calculator
+        let currentInput = '0';
+        let firstOperand = null;
+        let operator = null;
+        let waitingForSecondOperand = false;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Get the display element
+            const display = document.getElementById('display');
+            display.textContent = currentInput;
+
+            // Add event listeners to all buttons using event delegation
+            const calculator = document.getElementById('calculator-grid');
+            calculator.addEventListener('click', (event) => {
+                if (!event.target.matches('button')) {
+                    return;
+                }
+
+                const { value, className } = event.target;
+
+                if (className.includes('operator')) {
+                    handleOperator(value);
+                } else if (className.includes('decimal')) {
+                    inputDecimal(value);
+                } else if (className.includes('clear')) {
+                    resetCalculator();
+                } else if (className.includes('equals')) {
+                    performCalculation();
+                } else {
+                    inputDigit(value);
+                }
+
+                updateDisplay();
+            });
+        });
+
+        function updateDisplay() {
+            const display = document.getElementById('display');
+            // Ensure display only shows up to 12 characters for mobile layout
+            display.textContent = currentInput.length > 12 ? currentInput.substring(0, 12) : currentInput;
+        }
+
+        function inputDigit(digit) {
+            if (waitingForSecondOperand === true) {
+                currentInput = digit;
+                waitingForSecondOperand = false;
+            } else {
+                currentInput = currentInput === '0' ? digit : currentInput + digit;
+            }
+        }
+
+        function inputDecimal(dot) {
+            // If the last thing pressed was an operator, start a new number
+            if (waitingForSecondOperand === true) {
+                currentInput = '0.';
+                waitingForSecondOperand = false;
+                return;
+            }
+
+            // Ensure only one decimal point
+            if (!currentInput.includes(dot)) {
+                currentInput += dot;
+            }
+        }
+
+        function handleOperator(nextOperator) {
+            const inputValue = parseFloat(currentInput);
+
+            // Allow the user to change the operator before the second operand
+            if (operator && waitingForSecondOperand) {
+                operator = nextOperator;
+                return;
+            }
+
+            if (firstOperand === null) {
+                firstOperand = inputValue;
+            } else if (!waitingForSecondOperand) {
+                const result = calculate(firstOperand, inputValue, operator);
+                // Limit floating point numbers to 6 decimal places for cleaner display
+                currentInput = String(parseFloat(result.toFixed(6)));
+                firstOperand = parseFloat(currentInput);
+            }
+
+            waitingForSecondOperand = true;
+            operator = nextOperator;
+        }
+
+        function calculate(first, second, op) {
+            if (op === '+') return first + second;
+            if (op === '-') return first - second;
+            if (op === '*') return first * second;
+            if (op === '/') {
+                if (second === 0) {
+                    // Prevent division by zero
+                    currentInput = "Error";
+                    return NaN;
+                }
+                return first / second;
+            }
+            return second;
+        }
+
+        function performCalculation() {
+            if (operator === null || waitingForSecondOperand) {
+                return;
+            }
+
+            const secondOperand = parseFloat(currentInput);
+            const result = calculate(firstOperand, secondOperand, operator);
+
+            // Limit floating point numbers to 6 decimal places for cleaner display
+            currentInput = String(parseFloat(result.toFixed(6)));
+            firstOperand = null;
+            operator = null;
+            waitingForSecondOperand = true; // Ready for a new operation chain
+        }
+
+        function resetCalculator() {
+            currentInput = '0';
+            firstOperand = null;
+            operator = null;
+            waitingForSecondOperand = false;
+        }
+    </script>
+</head>
+<body>
+
+    <!-- Main Calculator Container -->
+    <div class="p-4 md:p-6 w-full max-w-sm">
+
+        <div class="bg-gray-800 rounded-xl shadow-2xl p-4 sm:p-6">
+            <!-- Display Screen -->
+            <div id="display" class="bg-gray-900 text-white text-right p-4 mb-4 rounded-lg text-4xl font-extrabold overflow-x-auto whitespace-nowrap tracking-wider">
+                0
+            </div>
+
+            <!-- Button Grid -->
+            <div id="calculator-grid" class="grid grid-cols-4 gap-3">
+                
+                <!-- Clear and Sign/Percentage Row -->
+                <button value="C" class="clear col-span-2 bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-4 rounded-full shadow-md transition duration-150">C</button>
+                <button value="%" class="operator bg-gray-600 hover:bg-gray-700 text-white font-bold py-4 rounded-full shadow-md transition duration-150">%</button>
+                <button value="/" class="operator bg-orange-500 hover:bg-orange-600 text-white font-bold py-4 rounded-full shadow-md transition duration-150">/</button>
+
+                <!-- 7, 8, 9, * Row -->
+                <button value="7" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-4 rounded-full shadow-inner transition duration-150">7</button>
+                <button value="8" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-4 rounded-full shadow-inner transition duration-150">8</button>
+                <button value="9" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-4 rounded-full shadow-inner transition duration-150">9</button>
+                <button value="*" class="operator bg-orange-500 hover:bg-orange-600 text-white font-bold py-4 rounded-full shadow-md transition duration-150">*</button>
+
+                <!-- 4, 5, 6, - Row -->
+                <button value="4" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-4 rounded-full shadow-inner transition duration-150">4</button>
+                <button value="5" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-4 rounded-full shadow-inner transition duration-150">5</button>
+                <button value="6" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-4 rounded-full shadow-inner transition duration-150">6</button>
+                <button value="-" class="operator bg-orange-500 hover:bg-orange-600 text-white font-bold py-4 rounded-full shadow-md transition duration-150">-</button>
+
+                <!-- 1, 2, 3, + Row -->
+                <button value="1" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-4 rounded-full shadow-inner transition duration-150">1</button>
+                <button value="2" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-4 rounded-full shadow-inner transition duration-150">2</button>
+                <button value="3" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-4 rounded-full shadow-inner transition duration-150">3</button>
+                <button value="+" class="operator bg-orange-500 hover:bg-orange-600 text-white font-bold py-4 rounded-full shadow-md transition duration-150">+</button>
+
+                <!-- 0, ., = Row -->
+                <button value="0" class="col-span-2 bg-gray-700 hover:bg-gray-600 text-white font-bold py-4 rounded-full shadow-inner transition duration-150">0</button>
+                <button value="." class="decimal bg-gray-700 hover:bg-gray-600 text-white font-bold py-4 rounded-full shadow-inner transition duration-150">.</button>
+                <button value="=" class="equals bg-orange-700 hover:bg-orange-800 text-white font-bold py-4 rounded-full shadow-2xl transition duration-150">=</button>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>
